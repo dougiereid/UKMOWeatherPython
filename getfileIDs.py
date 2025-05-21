@@ -1,9 +1,8 @@
 import requests
 import json
-import pandas as pd
 
-# Define the API endpoint URL
-api_url = "https://data.hub.api.metoffice.gov.uk/atmospheric-models/1.0.0/orders"
+# Define the API endpoint URL for the specific order
+api_url = "https://data.hub.api.metoffice.gov.uk/atmospheric-models/1.0.0/orders/o063720889831/latest"
 
 # Define the API key
 # WARNING: Hardcoding API keys directly in scripts is generally NOT recommended for security reasons,
@@ -13,25 +12,9 @@ api_key = "eyJ4NXQjUzI1NiI6Ik5XVTVZakUxTkRjeVl6a3hZbUl4TkdSaFpqSmpOV1l6T1dGaE9XW
 
 # Define the headers
 headers = {
-    "accept": "application/json, application/json",
+    "accept": "application/json",
     "apikey": api_key
 }
-
-def print_structure(data, indent=0):
-    """Recursively prints the structure of the JSON data."""
-    if isinstance(data, dict):
-        for key, value in data.items():
-            print("  " * indent + f"- {key} ({type(value).__name__})")
-            print_structure(value, indent + 1)
-    elif isinstance(data, list) and data:
-        print("  " * indent + "Items:")
-        # Assuming all items in the list have the same structure,
-        # we'll just print the structure of the first item
-        print_structure(data[0], indent + 1)
-    elif data is not None:
-        # For non-dictionary and non-list items, just print their type
-        print("  " * indent + f"({type(data).__name__})")
-
 
 try:
     # Make the GET request
@@ -40,37 +23,20 @@ try:
     # Check if the request was successful (status code 200)
     if response.status_code == 200:
         # Parse the JSON response
-        order_data = response.json()
+        met_office_data = response.json()
 
-        # 1. Print the JSON output
-        print("--- JSON Output ---")
-        print(json.dumps(order_data, indent=4))
-        print("\n") # Add a newline for separation
-
-        # 2. Print the data as a table
-        print("--- Tabular Data ---")
-        # Assuming the order_data is a list of dictionaries or a dictionary with a key containing a list
-        # Adjust the following lines based on the actual structure of your JSON data
-        if isinstance(order_data, list):
-            df = pd.DataFrame(order_data)
-            print(df.to_markdown(index=False)) # Use to_markdown for better display
-        elif isinstance(order_data, dict) and 'orders' in order_data:
-             df = pd.DataFrame(order_data['orders'])
-             print(df.to_markdown(index=False))
+        print("--- File IDs ---")
+        # Navigate through the data structure to extract file IDs
+        if "orderDetails" in met_office_data and "files" in met_office_data["orderDetails"]:
+            for file_info in met_office_data["orderDetails"]["files"]:
+                if "fileId" in file_info:
+                    print(file_info["fileId"])
         else:
-            print("Could not convert JSON to table. The structure might not be a simple list of dictionaries.")
-        print("\n") # Add a newline for separation
-
-
-        # 3. Print the structure only
-        print("--- Data Structure ---")
-        print_structure(order_data)
-        print("\n") # Add a newline for separation
-
+            print("No file IDs found in the expected structure.")
 
     else:
         # Print an error message if the request was not successful
-        print(f"Error: Failed to retrieve order information. Status code: {response.status_code}")
+        print(f"Error: Failed to retrieve data. Status code: {response.status_code}")
         print("Response body:")
         print(response.text)
 
